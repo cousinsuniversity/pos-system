@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NEXUS POS // V1</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0f0f13;
+            --glass-bg: rgba(30, 30, 35, 0.7);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+            --accent-color: #00f2ea;
+            --accent-glow: 0 0 15px rgba(0, 242, 234, 0.4);
+            --danger-color: #ff2a6d;
+            --success-color: #05d9e8;
+            --text-main: #ffffff;
+            --text-muted: #8b9bb4;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 10% 20%, rgba(0, 242, 234, 0.05) 0%, transparent 20%);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Layout --- */
+        .app-container {
+            display: flex;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* --- Left Side: Products --- */
+        .product-section {
+            flex: 2;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .brand { font-size: 1.5rem; font-weight: 800; letter-spacing: 2px; text-shadow: var(--accent-glow); }
+        .brand span { color: var(--accent-color); }
+
+        .category-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+
+        .tab {
+            background: var(--glass-bg);
+            border: var(--glass-border);
+            color: var(--text-muted);
+            padding: 10px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: 0.3s;
+        }
+
+        .tab.active {
+            background: rgba(0, 242, 234, 0.15);
+            color: var(--accent-color);
+            border-color: var(--accent-color);
+            box-shadow: var(--accent-glow);
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 15px;
+        }
+
+        .product-card {
+            background: var(--glass-bg);
+            border: var(--glass-border);
+            border-radius: 16px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 180px;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-card:active { transform: scale(0.96); }
+        
+        .product-name { font-weight: 600; font-size: 1.1rem; margin-bottom: 5px; }
+        .product-price { color: var(--accent-color); font-weight: bold; font-size: 1.2rem; }
+        .product-stock { font-size: 0.8rem; color: var(--text-muted); margin-top: auto; }
+
+        /* --- Right Side: Cart --- */
+        .cart-section {
+            flex: 1;
+            min-width: 350px;
+            max-width: 450px;
+            background: rgba(20, 20, 25, 0.95);
+            backdrop-filter: blur(20px);
+            border-left: var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .cart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .cart-items {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .cart-item {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .item-info h4 { margin: 0; font-weight: 500; }
+        .item-info p { margin: 5px 0 0; color: var(--text-muted); font-size: 0.9rem; }
+
+        .item-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #000;
+            padding: 5px;
+            border-radius: 8px;
+        }
+
+        .qty-btn {
+            background: #333;
+            border: none;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .qty-btn:active { background: var(--accent-color); }
+
+        .totals-area {
+            margin-top: 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .row { display: flex; justify-content: space-between; margin-bottom: 10px; color: var(--text-muted); }
+        .row.total { color: var(--text-main); font-size: 1.5rem; font-weight: bold; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; }
+
+        .pay-btn {
+            background: var(--accent-color);
+            color: #000;
+            border: none;
+            width: 100%;
+            padding: 18px;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            font-weight: 800;
+            margin-top: 20px;
+            cursor: pointer;
+            box-shadow: var(--accent-glow);
+            transition: 0.2s;
+        }
+        
+        .pay-btn:active { transform: scale(0.98); opacity: 0.9; }
+
+        /* --- Admin Modal --- */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.active { display: flex; }
+
+        .modal-content {
+            background: #1a1a1f;
+            border: var(--glass-border);
+            width: 90%;
+            max-width: 500px;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: var(--text-muted); }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            background: #0f0f13;
+            border: 1px solid #333;
+            color: white;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-secondary { background: #333; color: white; border: none; padding: 12px; border-radius: 8px; flex: 1; }
+        .btn-primary { background: var(--accent-color); color: black; border: none; padding: 12px; border-radius: 8px; flex: 1; font-weight: bold; }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .app-container { flex-direction: column; }
+            .cart-section { 
+                position: fixed; bottom: 0; left: 0; width: 100%; 
+                height: 80px; max-width: none; 
+                flex-direction: row; align-items: center;
+                border-top: var(--glass-border);
+                z-index: 50;
+                transition: height 0.3s;
+            }
+            .cart-section.expanded { height: 80vh; flex-direction: column; }
+            .cart-header { width: 100%; }
+            .cart-items, .totals-area { display: none; }
+            .cart-section.expanded .cart-items, 
+            .cart-section.expanded .totals-area { display: flex; width: 100%; }
+            .pay-btn { margin: 0; padding: 10px; font-size: 1rem; }
+            .mobile-cart-toggle { display: block; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="product-section">
+        <div class="header">
+            <div class="brand">NEXUS<span>POS</span></div>
+            <div>
+                <button class="tab" onclick="app.toggleAdmin()"><i class="fas fa-cog"></i> Admin</button>
+            </div>
+        </div>
+
+        <div class="category-tabs" id="categoryList">
+            <div class="tab active" onclick="app.filterCategory('All')">All Items</div>
+            <div class="tab" onclick="app.filterCategory('Drinks')">Drinks</div>
+            <div class="tab" onclick="app.filterCategory('Food')">Food</div>
+            <div class="tab" onclick="app.filterCategory('Dessert')">Dessert</div>
+        </div>
+
+        <div class="product-grid" id="productGrid">
+            </div>
+    </div>
+
+    <div class="cart-section" id="cartPanel">
+        <div class="cart-header" onclick="app.toggleMobileCart()">
+            <h3>Current Order</h3>
+            <span id="mobileTotal" style="color:var(--accent-color); font-weight:bold;"></span>
+            <i class="fas fa-chevron-up mobile-only" style="display:none"></i>
+        </div>
+
+        <div class="cart-items" id="cartItems">
+            <div style="text-align:center; color:var(--text-muted); margin-top:50px;">
+                <i class="fas fa-shopping-basket" style="font-size: 2rem; margin-bottom:10px; opacity:0.5;"></i>
+                <p>Cart is empty</p>
+            </div>
+        </div>
+
+        <div class="totals-area" id="totalsArea">
+            <div class="row"><span>Subtotal</span><span id="subTotal">$0.00</span></div>
+            <div class="row"><span>Tax (5%)</span><span id="taxAmount">$0.00</span></div>
+            <div class="row total"><span>Total</span><span id="finalTotal">$0.00</span></div>
+            <button class="pay-btn" onclick="app.processPayment()">PROCESS PAYMENT</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="adminModal">
+    <div class="modal-content">
+        <h2>Manage Inventory</h2>
+        <div class="form-group">
+            <label>Product Name</label>
+            <input type="text" id="newProdName">
+        </div>
+        <div class="form-group">
+            <label>Price</label>
+            <input type="number" id="newProdPrice">
+        </div>
+        <div class="form-group">
+            <label>Category</label>
+            <select id="newProdCat">
+                <option value="Drinks">Drinks</option>
+                <option value="Food">Food</option>
+                <option value="Dessert">Dessert</option>
+            </select>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-secondary" onclick="app.toggleAdmin()">Cancel</button>
+            <button class="btn-primary" onclick="app.addProduct()">Add Item</button>
+        </div>
+        <hr style="border-color:rgba(255,255,255,0.1); margin: 20px 0;">
+        <button class="btn-secondary" style="width:100%; color:var(--danger-color)" onclick="app.resetSystem()">Factory Reset Data</button>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
