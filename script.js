@@ -1,28 +1,62 @@
 class POS {
     constructor() {
-        this.products = JSON.parse(localStorage.getItem('nexus_products')) || [
+        this.cart = [];
+        this.activeCategory = 'All';
+        this.taxRate = 0.05; // 5%
+        this.isTouch = false; // Flag to store device mode
+
+        // Safety check for loading data
+        try {
+            const savedData = localStorage.getItem('nexus_products');
+            this.products = savedData ? JSON.parse(savedData) : this.getDefaultProducts();
+        } catch (e) {
+            console.error("Data load error", e);
+            this.products = this.getDefaultProducts();
+        }
+        
+        this.init();
+    }
+
+    getDefaultProducts() {
+        return [
             { id: 1, name: "Neon Burger", price: 12.50, category: "Food" },
             { id: 2, name: "Cyber Fries", price: 5.00, category: "Food" },
             { id: 3, name: "Quantum Cola", price: 3.50, category: "Drinks" },
             { id: 4, name: "Void Coffee", price: 4.00, category: "Drinks" },
             { id: 5, name: "Plasma Cake", price: 6.00, category: "Dessert" },
         ];
-        
-        this.cart = [];
-        this.activeCategory = 'All';
-        this.taxRate = 0.05; // 5%
-        
-        this.init();
     }
 
     init() {
+        // Ensure DOM elements exist before running
+        if (!document.getElementById('productGrid')) return;
+
+        // Detect if device supports touch events
+        this.detectDevice();
+        
         this.renderProducts();
         this.renderCart();
     }
 
+    detectDevice() {
+        // Check for touch capability
+        this.isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        
+        // Add a class to body for CSS specific tweaks if needed (optional)
+        if (this.isTouch) {
+            document.body.classList.add('touch-mode');
+        } else {
+            document.body.classList.add('desktop-mode');
+        }
+    }
+
     // --- Data Management ---
     saveData() {
-        localStorage.setItem('nexus_products', JSON.stringify(this.products));
+        try {
+            localStorage.setItem('nexus_products', JSON.stringify(this.products));
+        } catch (e) {
+            console.error("Save failed", e);
+        }
     }
 
     resetSystem() {
@@ -35,6 +69,8 @@ class POS {
     // --- Product Logic ---
     renderProducts() {
         const grid = document.getElementById('productGrid');
+        if (!grid) return;
+        
         grid.innerHTML = '';
 
         const filtered = this.activeCategory === 'All' 
@@ -51,13 +87,23 @@ class POS {
                 </div>
                 <div class="product-price">$${product.price.toFixed(2)}</div>
             `;
-            // Add touch feedback
-            card.addEventListener('click', () => {
+            
+            // --- PATCH: Dynamic Event Listener ---
+            // If Touch Device: use 'touchstart' for instant reaction
+            // If Desktop: use 'click' for standard mouse interaction
+            const eventType = this.isTouch ? 'touchstart' : 'click';
+
+            card.addEventListener(eventType, (e) => {
+                // Prevent ghost clicks on touch devices
+                if (this.isTouch) e.preventDefault(); 
+                
                 this.addToCart(product.id);
-                // Simple ripple visual effect could go here
+                
+                // Visual Feedback
                 card.style.transform = 'scale(0.95)';
                 setTimeout(() => card.style.transform = 'scale(1)', 100);
             });
+
             grid.appendChild(card);
         });
     }
@@ -109,6 +155,8 @@ class POS {
         const totalEl = document.getElementById('finalTotal');
         const mobileTotal = document.getElementById('mobileTotal');
 
+        if (!container) return;
+
         if (this.cart.length === 0) {
             container.innerHTML = `
                 <div style="text-align:center; color:var(--text-muted); margin-top:50px;">
@@ -132,18 +180,35 @@ class POS {
 
             const el = document.createElement('div');
             el.className = 'cart-item';
+            
+            // Build Controls HTML
+            // We use inline onclick for simplicity, but for the +/- buttons we want
+            // the same touch optimization.
+            
             el.innerHTML = `
                 <div class="item-info">
                     <h4>${item.name}</h4>
                     <p>$${item.price.toFixed(2)} x ${item.qty}</p>
                 </div>
                 <div class="item-controls">
-                    <button class="qty-btn" onclick="app.updateQty(${item.id}, -1)"><i class="fas fa-minus"></i></button>
+                    <button class="qty-btn" data-id="${item.id}" data-action="-1"><i class="fas fa-minus"></i></button>
                     <span style="font-weight:bold; min-width:20px; text-align:center;">${item.qty}</span>
-                    <button class="qty-btn" onclick="app.updateQty(${item.id}, 1)"><i class="fas fa-plus"></i></button>
+                    <button class="qty-btn" data-id="${item.id}" data-action="1"><i class="fas fa-plus"></i></button>
                 </div>
             `;
+            
             container.appendChild(el);
+        });
+        
+        // --- PATCH: Add listeners to new cart buttons ---
+        const eventType = this.isTouch ? 'touchstart' : 'click';
+        container.querySelectorAll('.qty-btn').forEach(btn => {
+            btn.addEventListener(eventType, (e) => {
+                if (this.isTouch) e.preventDefault();
+                const id = parseInt(btn.getAttribute('data-id'));
+                const action = parseInt(btn.getAttribute('data-action'));
+                this.updateQty(id, action);
+            });
         });
 
         const tax = subTotal * this.taxRate;
@@ -158,24 +223,28 @@ class POS {
     // --- Admin & Payments ---
     toggleAdmin() {
         const modal = document.getElementById('adminModal');
-        modal.classList.toggle('active');
+        if(modal) modal.classList.toggle('active');
     }
 
     addProduct() {
-        const name = document.getElementById('newProdName').value;
-        const price = parseFloat(document.getElementById('newProdPrice').value);
-        const category = document.getElementById('newProdCat').value;
+        const nameInput = document.getElementById('newProdName');
+        const priceInput = document.getElementById('newProdPrice');
+        const catInput = document.getElementById('newProdCat');
+
+        const name = nameInput.value;
+        const price = parseFloat(priceInput.value);
+        const category = catInput.value;
 
         if(name && price) {
-            const newId = Date.now(); // Simple ID generation
+            const newId = Date.now();
             this.products.push({ id: newId, name, price, category });
             this.saveData();
             this.renderProducts();
             this.toggleAdmin();
             
             // Clear inputs
-            document.getElementById('newProdName').value = '';
-            document.getElementById('newProdPrice').value = '';
+            nameInput.value = '';
+            priceInput.value = '';
         } else {
             alert('Please enter valid name and price');
         }
@@ -184,26 +253,25 @@ class POS {
     processPayment() {
         if(this.cart.length === 0) return alert("Cart is empty!");
         
-        // In a real app, this would connect to Stripe/Square API
-        // For this demo, we simulate a successful transaction
-        
         const total = document.getElementById('finalTotal').innerText;
         
         if(confirm(`Process payment of ${total}?`)) {
             alert("Payment Successful! Receipt sent.");
             this.cart = [];
             this.renderCart();
-            // Contract mobile cart if open
             document.getElementById('cartPanel').classList.remove('expanded');
         }
     }
     
     toggleMobileCart() {
+        // Always allow toggle on mobile layout, regardless of input type
         if(window.innerWidth <= 768) {
             document.getElementById('cartPanel').classList.toggle('expanded');
         }
     }
 }
 
-// Initialize App
-const app = new POS();
+// Start App when page is ready
+document.addEventListener('DOMContentLoaded', () => {
+    window.app = new POS();
+});
