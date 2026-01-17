@@ -56,16 +56,18 @@ class POS {
         const form = document.getElementById('setupForm');
 
         if (!this.settings.setupDone) {
-            // Show Setup Form
-            loader.style.display = 'none';
-            text.style.display = 'none';
-            form.style.display = 'block';
+            // Show Setup Form with 3D animation delay
+            setTimeout(() => {
+                loader.style.display = 'none';
+                text.style.display = 'none';
+                form.style.display = 'block';
+            }, 1000);
         } else {
             // Normal Load
             setTimeout(() => {
                 splash.style.opacity = '0';
-                setTimeout(() => splash.style.display = 'none', 500);
-            }, 1500); // Fake loading time
+                setTimeout(() => splash.style.display = 'none', 800);
+            }, 1500); 
         }
     }
 
@@ -149,8 +151,9 @@ class POS {
             card.addEventListener(eventType, (e) => {
                 if (this.isTouch) e.preventDefault(); 
                 this.addToCart(product.id);
-                card.style.transform = 'scale(0.95)';
-                setTimeout(() => card.style.transform = 'scale(1)', 100);
+                // 3D Click Feedback
+                card.style.transform = 'scale(0.95) translateZ(-5px)';
+                setTimeout(() => card.style.transform = '', 150);
             });
             grid.appendChild(card);
         });
