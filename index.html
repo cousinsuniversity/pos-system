@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEXUS POS // V1</title>
+    <title>NEXUS POS // V2</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -37,6 +37,7 @@
             display: flex;
             height: 100%;
             width: 100%;
+            overflow: hidden; 
         }
 
         /* --- Left Side: Products --- */
@@ -53,10 +54,12 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            min-height: 50px;
         }
 
         .brand { font-size: 1.5rem; font-weight: 800; letter-spacing: 2px; text-shadow: var(--accent-glow); }
         .brand span { color: var(--accent-color); }
+        .store-subtitle { font-size: 0.8rem; color: var(--text-muted); font-weight: 400; letter-spacing: 0; display: block; }
 
         .category-tabs {
             display: flex;
@@ -64,6 +67,7 @@
             margin-bottom: 20px;
             overflow-x: auto;
             padding-bottom: 5px;
+            flex-shrink: 0;
         }
 
         .tab {
@@ -88,6 +92,7 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
             gap: 15px;
+            padding-bottom: 100px;
         }
 
         .product-card {
@@ -128,9 +133,20 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             padding-bottom: 15px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .table-selector {
+            width: 100%;
+            background: #1a1a1f;
+            color: var(--accent-color);
+            border: var(--glass-border);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-weight: bold;
         }
 
         .cart-items {
@@ -244,6 +260,29 @@
         .btn-secondary { background: #333; color: white; border: none; padding: 12px; border-radius: 8px; flex: 1; }
         .btn-primary { background: var(--accent-color); color: black; border: none; padding: 12px; border-radius: 8px; flex: 1; font-weight: bold; }
 
+        /* --- Splash Screen --- */
+        #splashScreen {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: var(--bg-color);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            transition: opacity 0.5s;
+        }
+        
+        .loader {
+            width: 50px; height: 50px;
+            border: 5px solid rgba(255,255,255,0.1);
+            border-top: 5px solid var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
         /* Mobile Responsive */
         @media (max-width: 768px) {
             .app-container { flex-direction: column; }
@@ -253,34 +292,56 @@
                 flex-direction: row; align-items: center;
                 border-top: var(--glass-border);
                 z-index: 50;
-                transition: height 0.3s;
+                transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             }
-            .cart-section.expanded { height: 80vh; flex-direction: column; }
-            .cart-header { width: 100%; }
-            .cart-items, .totals-area { display: none; }
+            .cart-section.expanded { height: 85vh; flex-direction: column; }
+            .cart-header { width: 100%; cursor: pointer; }
+            .cart-items, .totals-area, .table-selector { display: none; }
             .cart-section.expanded .cart-items, 
-            .cart-section.expanded .totals-area { display: flex; width: 100%; }
+            .cart-section.expanded .totals-area,
+            .cart-section.expanded .table-selector { display: flex; width: 100%; }
             .pay-btn { margin: 0; padding: 10px; font-size: 1rem; }
-            .mobile-cart-toggle { display: block; }
+            .mobile-only { display: block !important; }
         }
     </style>
 </head>
 <body>
 
+<div id="splashScreen">
+    <div class="loader" id="splashLoader"></div>
+    <div id="splashText" style="font-size: 1.2rem; letter-spacing: 2px;">LOADING SYSTEM...</div>
+    
+    <div id="setupForm" style="display:none; width: 300px; text-align: center;">
+        <h2 style="color:var(--accent-color)">SYSTEM SETUP</h2>
+        <div class="form-group" style="text-align:left">
+            <label>Store Name</label>
+            <input type="text" id="setupStoreName" placeholder="e.g. Cyber Cafe">
+        </div>
+        <div class="form-group" style="text-align:left">
+            <label>Total Tables</label>
+            <input type="number" id="setupTableCount" placeholder="e.g. 10">
+        </div>
+        <button class="pay-btn" onclick="window.app.finishSetup()">LAUNCH</button>
+    </div>
+</div>
+
 <div class="app-container">
     <div class="product-section">
         <div class="header">
-            <div class="brand">NEXUS<span>POS</span></div>
+            <div class="brand">
+                <div id="brandName">NEXUS<span>POS</span></div>
+                <small class="store-subtitle" id="storeSubtitle">System Active</small>
+            </div>
             <div>
-                <button class="tab" onclick="app.toggleAdmin()"><i class="fas fa-cog"></i> Admin</button>
+                <button class="tab" onclick="window.app.toggleAdmin()"><i class="fas fa-cog"></i> Admin</button>
             </div>
         </div>
 
         <div class="category-tabs" id="categoryList">
-            <div class="tab active" onclick="app.filterCategory('All')">All Items</div>
-            <div class="tab" onclick="app.filterCategory('Drinks')">Drinks</div>
-            <div class="tab" onclick="app.filterCategory('Food')">Food</div>
-            <div class="tab" onclick="app.filterCategory('Dessert')">Dessert</div>
+            <div class="tab active" onclick="window.app.filterCategory('All')">All Items</div>
+            <div class="tab" onclick="window.app.filterCategory('Drinks')">Drinks</div>
+            <div class="tab" onclick="window.app.filterCategory('Food')">Food</div>
+            <div class="tab" onclick="window.app.filterCategory('Dessert')">Dessert</div>
         </div>
 
         <div class="product-grid" id="productGrid">
@@ -288,24 +349,24 @@
     </div>
 
     <div class="cart-section" id="cartPanel">
-        <div class="cart-header" onclick="app.toggleMobileCart()">
+        <div class="cart-header" onclick="window.app.toggleMobileCart()">
             <h3>Current Order</h3>
-            <span id="mobileTotal" style="color:var(--accent-color); font-weight:bold;"></span>
+            <span id="mobileTotal" style="color:var(--accent-color); font-weight:bold;">$0.00</span>
             <i class="fas fa-chevron-up mobile-only" style="display:none"></i>
         </div>
 
+        <select id="tableSelector" class="table-selector">
+            <option value="0">Select Table...</option>
+            </select>
+
         <div class="cart-items" id="cartItems">
-            <div style="text-align:center; color:var(--text-muted); margin-top:50px;">
-                <i class="fas fa-shopping-basket" style="font-size: 2rem; margin-bottom:10px; opacity:0.5;"></i>
-                <p>Cart is empty</p>
             </div>
-        </div>
 
         <div class="totals-area" id="totalsArea">
             <div class="row"><span>Subtotal</span><span id="subTotal">$0.00</span></div>
             <div class="row"><span>Tax (5%)</span><span id="taxAmount">$0.00</span></div>
             <div class="row total"><span>Total</span><span id="finalTotal">$0.00</span></div>
-            <button class="pay-btn" onclick="app.processPayment()">PROCESS PAYMENT</button>
+            <button class="pay-btn" onclick="window.app.processPayment()">PROCESS PAYMENT</button>
         </div>
     </div>
 </div>
@@ -330,11 +391,11 @@
             </select>
         </div>
         <div class="modal-actions">
-            <button class="btn-secondary" onclick="app.toggleAdmin()">Cancel</button>
-            <button class="btn-primary" onclick="app.addProduct()">Add Item</button>
+            <button class="btn-secondary" onclick="window.app.toggleAdmin()">Cancel</button>
+            <button class="btn-primary" onclick="window.app.addProduct()">Add Item</button>
         </div>
         <hr style="border-color:rgba(255,255,255,0.1); margin: 20px 0;">
-        <button class="btn-secondary" style="width:100%; color:var(--danger-color)" onclick="app.resetSystem()">Factory Reset Data</button>
+        <button class="btn-secondary" style="width:100%; color:var(--danger-color)" onclick="window.app.resetSystem()">Factory Reset Data</button>
     </div>
 </div>
 
