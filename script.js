@@ -42,6 +42,57 @@ class POS {
         this.isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     }
 
+    // --- NEW: 3D Dialog System ---
+    show3DDialog(title, message, type, onConfirm) {
+        const overlay = document.getElementById('customDialogOverlay');
+        const box = document.getElementById('customDialogBox');
+        const titleEl = document.getElementById('dialogTitle');
+        const msgEl = document.getElementById('dialogMessage');
+        const btnsEl = document.getElementById('dialogBtns');
+
+        titleEl.innerText = title;
+        msgEl.innerText = message;
+        btnsEl.innerHTML = '';
+
+        const closeDialog = () => { overlay.style.display = 'none'; };
+
+        if (type === 'confirm') {
+            // Cancel Button
+            const btnCancel = document.createElement('button');
+            btnCancel.className = 'btn-secondary';
+            btnCancel.innerText = 'Cancel';
+            btnCancel.onclick = closeDialog;
+            
+            // Confirm Button
+            const btnOk = document.createElement('button');
+            btnOk.className = 'pay-btn';
+            btnOk.innerText = 'Confirm';
+            btnOk.style.margin = '0';
+            btnOk.onclick = () => {
+                closeDialog();
+                if(onConfirm) onConfirm();
+            };
+            
+            btnsEl.appendChild(btnCancel);
+            btnsEl.appendChild(btnOk);
+        } else {
+            // Alert (OK only)
+            const btnOk = document.createElement('button');
+            btnOk.className = 'pay-btn';
+            btnOk.innerText = 'OK';
+            btnOk.style.margin = '0';
+            btnOk.onclick = closeDialog;
+            btnsEl.appendChild(btnOk);
+        }
+
+        overlay.style.display = 'flex';
+        
+        // Re-trigger animation
+        box.style.animation = 'none';
+        box.offsetHeight; /* trigger reflow */
+        box.style.animation = 'dialogPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    }
+
     handleSplashScreen() {
         const splash = document.getElementById('splashScreen');
         const loader = document.getElementById('splashLoader');
@@ -70,11 +121,11 @@ class POS {
             this.settings.storeName = name;
             this.settings.tableCount = tables;
             this.settings.setupDone = true;
-            this.saveData(); // Save products/settings
+            this.saveData(); 
             localStorage.setItem('nexus_settings', JSON.stringify(this.settings));
             location.reload();
         } else {
-            alert("Please enter valid Store Name and Tables");
+            this.show3DDialog("Error", "Please enter valid Store Name and Tables", "alert");
         }
     }
 
@@ -98,10 +149,10 @@ class POS {
     }
 
     resetSystem() {
-        if(confirm("FULL RESET: Wipe all data?")) {
+        this.show3DDialog("Factory Reset", "This will wipe all data. Are you sure?", "confirm", () => {
             localStorage.clear();
             location.reload();
-        }
+        });
     }
 
     renderProducts() {
@@ -114,7 +165,6 @@ class POS {
         filtered.forEach(product => {
             const card = document.createElement('div');
             card.className = 'product-card';
-            // Added 3D click listener directly here
             const eventType = this.isTouch ? 'touchstart' : 'mousedown';
             
             card.innerHTML = `
@@ -126,7 +176,7 @@ class POS {
             `;
             
             card.addEventListener(eventType, (e) => {
-                if(this.isTouch) e.preventDefault(); // Stop ghost clicks
+                if(this.isTouch) e.preventDefault(); 
                 this.addToCart(product.id);
             });
             grid.appendChild(card);
@@ -211,19 +261,25 @@ class POS {
             this.products.push({ id: Date.now(), name, price, category: cat });
             this.saveData(); this.renderProducts(); this.toggleAdmin();
             document.getElementById('newProdName').value = ''; document.getElementById('newProdPrice').value = '';
+        } else {
+            this.show3DDialog("Missing Info", "Please enter valid name and price.", "alert");
         }
     }
 
     processPayment() {
-        if(this.cart.length === 0) return alert("Cart is empty!");
+        if(this.cart.length === 0) return this.show3DDialog("Empty", "Cart is empty!", "alert");
+        
         const table = document.getElementById('tableSelector').value;
-        if(table === "0") return alert("Select a Table Number");
-        if(confirm(`Process $${document.getElementById('finalTotal').innerText} for Table ${table}?`)) {
-            alert(`SENT TO KITCHEN [Table ${table}]`);
+        if(table === "0") return this.show3DDialog("Table Required", "Please Select a Table Number", "alert");
+
+        const total = document.getElementById('finalTotal').innerText;
+        
+        this.show3DDialog("Confirm Payment", `Process ${total} for Table ${table}?`, "confirm", () => {
+            this.show3DDialog("Success", `Order sent to Kitchen for Table ${table}.`, "alert");
             this.cart = []; this.renderCart();
             document.getElementById('tableSelector').value = "0";
             document.getElementById('cartPanel').classList.remove('expanded');
-        }
+        });
     }
 }
 
