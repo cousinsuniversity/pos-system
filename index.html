@@ -7,24 +7,25 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --bg-color: #0f0f13;
-            --glass-bg: rgba(30, 30, 35, 0.7);
-            --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+            --bg-dark: #121215;
+            --card-bg: linear-gradient(145deg, #1e1e24, #18181d);
             --accent-color: #00f2ea;
-            --accent-glow: 0 0 15px rgba(0, 242, 234, 0.4);
-            --danger-color: #ff2a6d;
-            --success-color: #05d9e8;
+            --accent-dark: #009da0;
             --text-main: #ffffff;
             --text-muted: #8b9bb4;
+            
+            /* 3D Effects */
+            --shadow-out: 5px 5px 10px #0b0b0d, -5px -5px 10px #25252d;
+            --shadow-in: inset 5px 5px 10px #0b0b0d, inset -5px -5px 10px #25252d;
+            --glow: 0 0 15px rgba(0, 242, 234, 0.3);
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
         
         body {
             margin: 0;
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            background-image: radial-gradient(circle at 10% 20%, rgba(0, 242, 234, 0.05) 0%, transparent 20%);
+            background-color: var(--bg-dark);
             color: var(--text-main);
             height: 100vh;
             overflow: hidden;
@@ -32,275 +33,256 @@
             flex-direction: column;
         }
 
+        /* --- Animations --- */
+        @keyframes elastic-click {
+            0% { transform: scale(1); }
+            30% { transform: scale(0.9); }
+            50% { transform: scale(0.95); }
+            80% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes sheen {
+            0% { left: -100%; opacity: 0; }
+            50% { opacity: 0.5; }
+            100% { left: 200%; opacity: 0; }
+        }
+
         /* --- Layout --- */
-        .app-container {
-            display: flex;
-            height: 100%;
-            width: 100%;
-            overflow: hidden; 
+        .app-container { display: flex; height: 100%; width: 100%; overflow: hidden; }
+        .product-section { flex: 2; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; }
+        
+        /* --- 3D Components --- */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        
+        .brand { 
+            font-size: 1.8rem; font-weight: 900; letter-spacing: 1px;
+            background: linear-gradient(to right, #fff, #8b9bb4);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
         }
-
-        /* --- Left Side: Products --- */
-        .product-section {
-            flex: 2;
-            padding: 20px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            min-height: 50px;
-        }
-
-        .brand { font-size: 1.5rem; font-weight: 800; letter-spacing: 2px; text-shadow: var(--accent-glow); }
-        .brand span { color: var(--accent-color); }
-        .store-subtitle { font-size: 0.8rem; color: var(--text-muted); font-weight: 400; letter-spacing: 0; display: block; }
-
-        .category-tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            overflow-x: auto;
-            padding-bottom: 5px;
-            flex-shrink: 0;
-        }
-
-        .tab {
-            background: var(--glass-bg);
-            border: var(--glass-border);
+        
+        .tab-btn {
+            background: var(--card-bg);
+            box-shadow: var(--shadow-out);
+            border: none;
             color: var(--text-muted);
-            padding: 10px 20px;
-            border-radius: 12px;
+            padding: 12px 25px;
+            border-radius: 15px;
+            font-weight: bold;
             cursor: pointer;
-            white-space: nowrap;
-            transition: 0.3s;
+            transition: 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .tab-btn.active {
+            color: var(--accent-color);
+            box-shadow: var(--shadow-in); /* Pressed look */
+            border: 1px solid rgba(0,242,234,0.1);
         }
 
-        .tab.active {
-            background: rgba(0, 242, 234, 0.15);
-            color: var(--accent-color);
-            border-color: var(--accent-color);
-            box-shadow: var(--accent-glow);
-        }
+        .category-tabs { display: flex; gap: 15px; margin-bottom: 25px; overflow-x: auto; padding: 10px 5px; }
 
         .product-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 15px;
+            gap: 20px;
             padding-bottom: 100px;
         }
 
+        /* 3D Card Style */
         .product-card {
-            background: var(--glass-bg);
-            border: var(--glass-border);
-            border-radius: 16px;
-            padding: 15px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 20px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            height: 180px;
-            cursor: pointer;
-            transition: transform 0.1s, box-shadow 0.2s;
+            height: 190px;
             position: relative;
-            overflow: hidden;
+            box-shadow: var(--shadow-out);
+            border: 1px solid rgba(255,255,255,0.03);
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        .product-card:active { transform: scale(0.96); }
-        
-        .product-name { font-weight: 600; font-size: 1.1rem; margin-bottom: 5px; }
-        .product-price { color: var(--accent-color); font-weight: bold; font-size: 1.2rem; }
+        /* Inner Glow Highlight */
+        .product-card::before {
+            content: ''; position: absolute; top:0; left:0; right:0; bottom:0;
+            border-radius: 20px;
+            background: linear-gradient(145deg, rgba(255,255,255,0.05), transparent);
+            pointer-events: none;
+        }
+
+        /* Active/Click State - The "Real 3D" Press */
+        .product-card:active {
+            box-shadow: var(--shadow-in);
+            transform: scale(0.95);
+        }
+
+        .product-name { font-weight: 700; font-size: 1.15rem; margin-bottom: 5px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
         .product-stock { font-size: 0.8rem; color: var(--text-muted); margin-top: auto; }
+        
+        .product-price { 
+            color: var(--accent-color); font-weight: 900; font-size: 1.3rem; 
+            text-shadow: 0 0 10px rgba(0,242,234,0.2);
+            background: rgba(0,0,0,0.3);
+            padding: 5px 10px;
+            border-radius: 10px;
+            width: fit-content;
+            box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5);
+        }
 
         /* --- Right Side: Cart --- */
         .cart-section {
-            flex: 1;
-            min-width: 350px;
-            max-width: 450px;
-            background: rgba(20, 20, 25, 0.95);
-            backdrop-filter: blur(20px);
-            border-left: var(--glass-border);
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
+            flex: 1; min-width: 350px; max-width: 450px;
+            background: #18181d;
+            border-left: 1px solid rgba(255,255,255,0.05);
+            display: flex; flex-direction: column; padding: 25px;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+            z-index: 100;
         }
 
-        .cart-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-
+        .cart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #25252d; }
+        
         .table-selector {
             width: 100%;
-            background: #1a1a1f;
+            background: var(--bg-dark);
             color: var(--accent-color);
-            border: var(--glass-border);
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 15px;
+            border: none;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
             font-weight: bold;
+            box-shadow: var(--shadow-in); /* Inset for input fields */
+            outline: none;
         }
 
-        .cart-items {
-            flex: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
+        .cart-items { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; padding: 5px; }
 
         .cart-item {
-            background: rgba(255,255,255,0.05);
-            border-radius: 12px;
-            padding: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .item-info h4 { margin: 0; font-weight: 500; }
-        .item-info p { margin: 5px 0 0; color: var(--text-muted); font-size: 0.9rem; }
-
-        .item-controls {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: #000;
-            padding: 5px;
-            border-radius: 8px;
+            background: var(--bg-dark);
+            border-radius: 15px;
+            padding: 15px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 5px 5px 10px #121215, -5px -5px 10px #25252d; /* Soft floating */
         }
 
         .qty-btn {
-            background: #333;
-            border: none;
-            color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 6px;
+            background: linear-gradient(145deg, #2a2a30, #1e1e24);
+            border: none; color: white;
+            width: 35px; height: 35px;
+            border-radius: 10px;
+            box-shadow: 3px 3px 6px #0f0f13, -3px -3px 6px #383842;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.9rem;
         }
         
-        .qty-btn:active { background: var(--accent-color); }
-
-        .totals-area {
-            margin-top: 20px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 16px;
-            padding: 20px;
+        .qty-btn:active {
+            box-shadow: inset 3px 3px 6px #0f0f13, inset -3px -3px 6px #383842;
+            color: var(--accent-color);
         }
 
-        .row { display: flex; justify-content: space-between; margin-bottom: 10px; color: var(--text-muted); }
-        .row.total { color: var(--text-main); font-size: 1.5rem; font-weight: bold; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; }
+        .totals-area {
+            margin-top: 25px;
+            background: #1e1e24;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: var(--shadow-out);
+        }
 
         .pay-btn {
-            background: var(--accent-color);
+            background: linear-gradient(145deg, #00fff6, #00d9d2);
             color: #000;
             border: none;
             width: 100%;
-            padding: 18px;
-            border-radius: 12px;
+            padding: 20px;
+            border-radius: 15px;
             font-size: 1.2rem;
-            font-weight: 800;
+            font-weight: 900;
             margin-top: 20px;
             cursor: pointer;
-            box-shadow: var(--accent-glow);
-            transition: 0.2s;
+            box-shadow: 0 10px 20px rgba(0, 242, 234, 0.2), inset 0 2px 0 rgba(255,255,255,0.5);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative; overflow: hidden;
+            transition: transform 0.1s;
         }
         
-        .pay-btn:active { transform: scale(0.98); opacity: 0.9; }
+        /* Shine Effect */
+        .pay-btn::after {
+            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.6), transparent);
+            transform: skewX(-20deg);
+            animation: sheen 3s infinite;
+        }
+
+        .pay-btn:active {
+            transform: scale(0.96) translateY(2px);
+            box-shadow: 0 2px 10px rgba(0, 242, 234, 0.1);
+        }
 
         /* --- Admin Modal --- */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(5px);
-            z-index: 100;
-            justify-content: center;
-            align-items: center;
-        }
-        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 200; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
         .modal.active { display: flex; }
 
         .modal-content {
-            background: #1a1a1f;
-            border: var(--glass-border);
-            width: 90%;
-            max-width: 500px;
-            padding: 25px;
-            border-radius: 20px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            background: #1e1e24;
+            width: 90%; max-width: 500px; padding: 30px; border-radius: 25px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.05);
         }
 
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; color: var(--text-muted); }
+        .form-group { margin-bottom: 20px; }
         input, select {
-            width: 100%;
-            padding: 12px;
-            background: #0f0f13;
-            border: 1px solid #333;
-            color: white;
-            border-radius: 8px;
-            font-size: 1rem;
+            width: 100%; padding: 15px; background: var(--bg-dark); border: none;
+            color: white; border-radius: 12px; font-size: 1rem;
+            box-shadow: var(--shadow-in);
         }
 
-        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
-        .btn-secondary { background: #333; color: white; border: none; padding: 12px; border-radius: 8px; flex: 1; }
-        .btn-primary { background: var(--accent-color); color: black; border: none; padding: 12px; border-radius: 8px; flex: 1; font-weight: bold; }
+        .modal-actions { display: flex; gap: 15px; margin-top: 25px; }
+        .btn-secondary { background: #2a2a30; color: white; border: none; padding: 15px; border-radius: 12px; flex: 1; box-shadow: var(--shadow-out); font-weight: bold;}
+        .btn-secondary:active { box-shadow: var(--shadow-in); }
 
         /* --- Splash Screen --- */
         #splashScreen {
             position: fixed; top:0; left:0; width:100%; height:100%;
-            background: var(--bg-color);
+            background: var(--bg-dark);
             z-index: 9999;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
+            display: flex; justify-content: center; align-items: center; flex-direction: column;
             transition: opacity 0.5s;
         }
         
-        .loader {
-            width: 50px; height: 50px;
-            border: 5px solid rgba(255,255,255,0.1);
-            border-top: 5px solid var(--accent-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
+        #setupForm {
+            background: #1e1e24; padding: 40px; border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            width: 90%; max-width: 400px; text-align: center;
+            border: 1px solid rgba(255,255,255,0.05);
         }
-        
+
+        .loader {
+            width: 60px; height: 60px;
+            border: 5px solid #2a2a30; border-top: 5px solid var(--accent-color);
+            border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 20px;
+            box-shadow: 0 0 20px rgba(0,242,234,0.2);
+        }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Mobile Responsive */
+        /* Mobile */
         @media (max-width: 768px) {
             .app-container { flex-direction: column; }
             .cart-section { 
-                position: fixed; bottom: 0; left: 0; width: 100%; 
-                height: 80px; max-width: none; 
-                flex-direction: row; align-items: center;
-                border-top: var(--glass-border);
-                z-index: 50;
-                transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                position: fixed; bottom: 0; left: 0; width: 100%; height: 90px;
+                border-radius: 30px 30px 0 0;
+                transition: height 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                box-shadow: 0 -10px 40px rgba(0,0,0,0.6);
             }
-            .cart-section.expanded { height: 85vh; flex-direction: column; }
-            .cart-header { width: 100%; cursor: pointer; }
+            .cart-section.expanded { height: 90vh; }
             .cart-items, .totals-area, .table-selector { display: none; }
             .cart-section.expanded .cart-items, 
             .cart-section.expanded .totals-area,
-            .cart-section.expanded .table-selector { display: flex; width: 100%; }
-            .pay-btn { margin: 0; padding: 10px; font-size: 1rem; }
+            .cart-section.expanded .table-selector { display: flex; }
             .mobile-only { display: block !important; }
         }
     </style>
@@ -309,19 +291,14 @@
 
 <div id="splashScreen">
     <div class="loader" id="splashLoader"></div>
-    <div id="splashText" style="font-size: 1.2rem; letter-spacing: 2px;">LOADING SYSTEM...</div>
+    <div id="splashText" style="font-weight:900; letter-spacing:2px; color:var(--text-muted)">LOADING SYSTEM...</div>
     
-    <div id="setupForm" style="display:none; width: 300px; text-align: center;">
-        <h2 style="color:var(--accent-color)">SYSTEM SETUP</h2>
-        <div class="form-group" style="text-align:left">
-            <label>Store Name</label>
-            <input type="text" id="setupStoreName" placeholder="e.g. Cyber Cafe">
-        </div>
-        <div class="form-group" style="text-align:left">
-            <label>Total Tables</label>
-            <input type="number" id="setupTableCount" placeholder="e.g. 10">
-        </div>
-        <button class="pay-btn" onclick="window.app.finishSetup()">LAUNCH</button>
+    <div id="setupForm" style="display:none;">
+        <h2 style="color:white; margin-bottom:10px; text-shadow:0 2px 4px rgba(0,0,0,0.5)">Welcome!</h2>
+        <p style="color:var(--text-muted); margin-bottom:30px;">Let's setup your 3D POS.</p>
+        <div class="form-group"><input type="text" id="setupStoreName" placeholder="Store Name"></div>
+        <div class="form-group"><input type="number" id="setupTableCount" placeholder="Number of Tables"></div>
+        <button class="pay-btn" onclick="window.app.finishSetup()">LAUNCH POS</button>
     </div>
 </div>
 
@@ -329,43 +306,34 @@
     <div class="product-section">
         <div class="header">
             <div class="brand">
-                <div id="brandName">NEXUS<span>POS</span></div>
-                <small class="store-subtitle" id="storeSubtitle">System Active</small>
+                <div id="brandName">NEXUS</div>
+                <small style="font-size:0.7rem; color:var(--text-muted); font-weight:normal;" id="storeSubtitle">SYSTEM ACTIVE</small>
             </div>
-            <div>
-                <button class="tab" onclick="window.app.toggleAdmin()"><i class="fas fa-cog"></i> Admin</button>
-            </div>
+            <button class="tab-btn" onclick="window.app.toggleAdmin()"><i class="fas fa-cog"></i></button>
         </div>
 
         <div class="category-tabs" id="categoryList">
-            <div class="tab active" onclick="window.app.filterCategory('All')">All Items</div>
-            <div class="tab" onclick="window.app.filterCategory('Drinks')">Drinks</div>
-            <div class="tab" onclick="window.app.filterCategory('Food')">Food</div>
-            <div class="tab" onclick="window.app.filterCategory('Dessert')">Dessert</div>
+            <button class="tab-btn active" onclick="window.app.filterCategory('All')">All Items</button>
+            <button class="tab-btn" onclick="window.app.filterCategory('Drinks')">Drinks</button>
+            <button class="tab-btn" onclick="window.app.filterCategory('Food')">Food</button>
+            <button class="tab-btn" onclick="window.app.filterCategory('Dessert')">Dessert</button>
         </div>
 
-        <div class="product-grid" id="productGrid">
-            </div>
+        <div class="product-grid" id="productGrid"></div>
     </div>
 
     <div class="cart-section" id="cartPanel">
         <div class="cart-header" onclick="window.app.toggleMobileCart()">
-            <h3>Current Order</h3>
-            <span id="mobileTotal" style="color:var(--accent-color); font-weight:bold;">$0.00</span>
+            <h3 style="margin:0;">Order</h3>
+            <span id="mobileTotal" style="color:var(--accent-color); font-weight:900;">$0.00</span>
             <i class="fas fa-chevron-up mobile-only" style="display:none"></i>
         </div>
-
-        <select id="tableSelector" class="table-selector">
-            <option value="0">Select Table...</option>
-            </select>
-
-        <div class="cart-items" id="cartItems">
-            </div>
-
-        <div class="totals-area" id="totalsArea">
-            <div class="row"><span>Subtotal</span><span id="subTotal">$0.00</span></div>
-            <div class="row"><span>Tax (5%)</span><span id="taxAmount">$0.00</span></div>
-            <div class="row total"><span>Total</span><span id="finalTotal">$0.00</span></div>
+        <select id="tableSelector" class="table-selector"><option value="0">Select Table...</option></select>
+        <div class="cart-items" id="cartItems"></div>
+        <div class="totals-area">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px; color:var(--text-muted);"><span>Subtotal</span><span id="subTotal">$0.00</span></div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px; color:var(--text-muted);"><span>Tax (5%)</span><span id="taxAmount">$0.00</span></div>
+            <div style="display:flex; justify-content:space-between; margin-top:15px; font-size:1.5rem; font-weight:900; color:white;"><span>Total</span><span id="finalTotal">$0.00</span></div>
             <button class="pay-btn" onclick="window.app.processPayment()">PROCESS PAYMENT</button>
         </div>
     </div>
@@ -373,29 +341,19 @@
 
 <div class="modal" id="adminModal">
     <div class="modal-content">
-        <h2>Manage Inventory</h2>
-        <div class="form-group">
-            <label>Product Name</label>
-            <input type="text" id="newProdName">
-        </div>
-        <div class="form-group">
-            <label>Price</label>
-            <input type="number" id="newProdPrice">
-        </div>
-        <div class="form-group">
-            <label>Category</label>
+        <h2>Inventory</h2>
+        <div class="form-group"><label>Name</label><input type="text" id="newProdName"></div>
+        <div class="form-group"><label>Price</label><input type="number" id="newProdPrice"></div>
+        <div class="form-group"><label>Category</label>
             <select id="newProdCat">
-                <option value="Drinks">Drinks</option>
-                <option value="Food">Food</option>
-                <option value="Dessert">Dessert</option>
+                <option value="Drinks">Drinks</option><option value="Food">Food</option><option value="Dessert">Dessert</option>
             </select>
         </div>
         <div class="modal-actions">
-            <button class="btn-secondary" onclick="window.app.toggleAdmin()">Cancel</button>
-            <button class="btn-primary" onclick="window.app.addProduct()">Add Item</button>
+            <button class="btn-secondary" onclick="window.app.toggleAdmin()">Close</button>
+            <button class="pay-btn" style="flex:1; margin:0;" onclick="window.app.addProduct()">Add</button>
         </div>
-        <hr style="border-color:rgba(255,255,255,0.1); margin: 20px 0;">
-        <button class="btn-secondary" style="width:100%; color:var(--danger-color)" onclick="window.app.resetSystem()">Factory Reset Data</button>
+        <button class="btn-secondary" style="width:100%; margin-top:20px; color:#ff2a6d" onclick="window.app.resetSystem()">Reset Data</button>
     </div>
 </div>
 
