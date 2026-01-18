@@ -5,7 +5,14 @@ class POS {
         this.taxRate = 0.05;
         this.isTouch = false;
         
-        this.settings = { storeName: "NEXUS POS", tableCount: 10, setupDone: false };
+        // Extended Settings for Localization
+        this.settings = { 
+            storeName: "NEXUS POS", 
+            tableCount: 10, 
+            setupDone: false,
+            language: "en",
+            currency: "USD"
+        };
 
         try {
             const savedData = localStorage.getItem('nexus_products');
@@ -29,6 +36,11 @@ class POS {
         ];
     }
 
+    getCurrencySymbol() {
+        const symbols = { 'USD': '$', 'PHP': '₱', 'EUR': '€', 'JPY': '¥' };
+        return symbols[this.settings.currency] || '$';
+    }
+
     init() {
         if (!document.getElementById('productGrid')) return;
         this.detectDevice();
@@ -42,7 +54,53 @@ class POS {
         this.isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     }
 
-    // --- NEW: 3D Dialog System ---
+    // --- WIZARD LOGIC ---
+    nextStep(stepNumber) {
+        document.querySelectorAll('.wizard-step').forEach(el => el.classList.remove('active'));
+        document.getElementById(`step${stepNumber}`).classList.add('active');
+    }
+
+    handleSplashScreen() {
+        const splash = document.getElementById('splashScreen');
+        const loader = document.getElementById('splashLoader');
+        const text = document.getElementById('splashText');
+        const wizard = document.getElementById('setupWizard');
+
+        if (!this.settings.setupDone) {
+            setTimeout(() => {
+                loader.style.display = 'none';
+                text.style.display = 'none';
+                wizard.style.display = 'block';
+            }, 1000);
+        } else {
+            setTimeout(() => {
+                splash.style.opacity = '0';
+                setTimeout(() => splash.style.display = 'none', 500);
+            }, 1500); 
+        }
+    }
+
+    finishSetup() {
+        const name = document.getElementById('setupStoreName').value;
+        const tables = parseInt(document.getElementById('setupTableCount').value);
+        const lang = document.getElementById('setupLang').value;
+        const region = document.getElementById('setupRegion').value;
+
+        if(name && tables > 0) {
+            this.settings.storeName = name;
+            this.settings.tableCount = tables;
+            this.settings.language = lang;
+            this.settings.currency = region;
+            this.settings.setupDone = true;
+            
+            this.saveData(); 
+            location.reload();
+        } else {
+            this.show3DDialog("Error", "Please complete all fields.", "alert");
+        }
+    }
+
+    // --- 3D Dialog System ---
     show3DDialog(title, message, type, onConfirm) {
         const overlay = document.getElementById('customDialogOverlay');
         const box = document.getElementById('customDialogBox');
@@ -57,26 +115,20 @@ class POS {
         const closeDialog = () => { overlay.style.display = 'none'; };
 
         if (type === 'confirm') {
-            // Cancel Button
             const btnCancel = document.createElement('button');
             btnCancel.className = 'btn-secondary';
             btnCancel.innerText = 'Cancel';
             btnCancel.onclick = closeDialog;
             
-            // Confirm Button
             const btnOk = document.createElement('button');
             btnOk.className = 'pay-btn';
             btnOk.innerText = 'Confirm';
             btnOk.style.margin = '0';
-            btnOk.onclick = () => {
-                closeDialog();
-                if(onConfirm) onConfirm();
-            };
+            btnOk.onclick = () => { closeDialog(); if(onConfirm) onConfirm(); };
             
             btnsEl.appendChild(btnCancel);
             btnsEl.appendChild(btnOk);
         } else {
-            // Alert (OK only)
             const btnOk = document.createElement('button');
             btnOk.className = 'pay-btn';
             btnOk.innerText = 'OK';
@@ -86,53 +138,15 @@ class POS {
         }
 
         overlay.style.display = 'flex';
-        
-        // Re-trigger animation
         box.style.animation = 'none';
-        box.offsetHeight; /* trigger reflow */
+        box.offsetHeight; 
         box.style.animation = 'dialogPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-    }
-
-    handleSplashScreen() {
-        const splash = document.getElementById('splashScreen');
-        const loader = document.getElementById('splashLoader');
-        const text = document.getElementById('splashText');
-        const form = document.getElementById('setupForm');
-
-        if (!this.settings.setupDone) {
-            setTimeout(() => {
-                loader.style.display = 'none';
-                text.style.display = 'none';
-                form.style.display = 'block';
-            }, 1000);
-        } else {
-            setTimeout(() => {
-                splash.style.opacity = '0';
-                setTimeout(() => splash.style.display = 'none', 500);
-            }, 1500); 
-        }
-    }
-
-    finishSetup() {
-        const name = document.getElementById('setupStoreName').value;
-        const tables = parseInt(document.getElementById('setupTableCount').value);
-
-        if(name && tables > 0) {
-            this.settings.storeName = name;
-            this.settings.tableCount = tables;
-            this.settings.setupDone = true;
-            this.saveData(); 
-            localStorage.setItem('nexus_settings', JSON.stringify(this.settings));
-            location.reload();
-        } else {
-            this.show3DDialog("Error", "Please enter valid Store Name and Tables", "alert");
-        }
     }
 
     applySettings() {
         if(this.settings.storeName) {
             document.getElementById('brandName').innerHTML = this.settings.storeName;
-            document.getElementById('storeSubtitle').innerText = "POS ONLINE // " + (new Date().toLocaleDateString());
+            document.getElementById('storeSubtitle').innerText = `${this.settings.currency} SYSTEM ACTIVE`;
         }
         const selector = document.getElementById('tableSelector');
         selector.innerHTML = '<option value="0">Select Table...</option>';
@@ -149,7 +163,7 @@ class POS {
     }
 
     resetSystem() {
-        this.show3DDialog("Factory Reset", "This will wipe all data. Are you sure?", "confirm", () => {
+        this.show3DDialog("Factory Reset", "Wipe all data?", "confirm", () => {
             localStorage.clear();
             location.reload();
         });
@@ -159,6 +173,7 @@ class POS {
         const grid = document.getElementById('productGrid');
         if (!grid) return;
         grid.innerHTML = '';
+        const sym = this.getCurrencySymbol();
         
         const filtered = this.activeCategory === 'All' ? this.products : this.products.filter(p => p.category === this.activeCategory);
 
@@ -172,7 +187,7 @@ class POS {
                     <div class="product-name">${product.name}</div>
                     <div class="product-stock">${product.category}</div>
                 </div>
-                <div class="product-price">$${product.price.toFixed(2)}</div>
+                <div class="product-price">${sym}${product.price.toFixed(2)}</div>
             `;
             
             card.addEventListener(eventType, (e) => {
@@ -216,13 +231,14 @@ class POS {
         const taxEl = document.getElementById('taxAmount');
         const totalEl = document.getElementById('finalTotal');
         const mobileTotal = document.getElementById('mobileTotal');
+        const sym = this.getCurrencySymbol();
 
         if (!container) return;
         container.innerHTML = '';
         
         if (this.cart.length === 0) {
             container.innerHTML = `<div style="text-align:center; color:var(--text-muted); margin-top:50px; opacity:0.5;">Cart Empty</div>`;
-            subTotalEl.innerText = '$0.00'; taxEl.innerText = '$0.00'; totalEl.innerText = '$0.00'; mobileTotal.innerText = '$0.00';
+            subTotalEl.innerText = `${sym}0.00`; taxEl.innerText = `${sym}0.00`; totalEl.innerText = `${sym}0.00`; mobileTotal.innerText = `${sym}0.00`;
             return;
         }
 
@@ -232,7 +248,7 @@ class POS {
             const el = document.createElement('div');
             el.className = 'cart-item';
             el.innerHTML = `
-                <div class="item-info"><h4>${item.name}</h4><p>$${item.price.toFixed(2)} x ${item.qty}</p></div>
+                <div class="item-info"><h4>${item.name}</h4><p>${sym}${item.price.toFixed(2)} x ${item.qty}</p></div>
                 <div style="display:flex; gap:10px; align-items:center;">
                     <button class="qty-btn" onclick="window.app.updateQty(${item.id}, -1)">-</button>
                     <span style="font-weight:bold; min-width:20px; text-align:center;">${item.qty}</span>
@@ -244,10 +260,10 @@ class POS {
 
         const tax = subTotal * this.taxRate;
         const total = subTotal + tax;
-        subTotalEl.innerText = `$${subTotal.toFixed(2)}`;
-        taxEl.innerText = `$${tax.toFixed(2)}`;
-        totalEl.innerText = `$${total.toFixed(2)}`;
-        mobileTotal.innerText = `$${total.toFixed(2)}`;
+        subTotalEl.innerText = `${sym}${subTotal.toFixed(2)}`;
+        taxEl.innerText = `${sym}${tax.toFixed(2)}`;
+        totalEl.innerText = `${sym}${total.toFixed(2)}`;
+        mobileTotal.innerText = `${sym}${total.toFixed(2)}`;
     }
 
     toggleAdmin() { document.getElementById('adminModal').classList.toggle('active'); }
@@ -262,20 +278,18 @@ class POS {
             this.saveData(); this.renderProducts(); this.toggleAdmin();
             document.getElementById('newProdName').value = ''; document.getElementById('newProdPrice').value = '';
         } else {
-            this.show3DDialog("Missing Info", "Please enter valid name and price.", "alert");
+            this.show3DDialog("Missing Info", "Enter valid name and price.", "alert");
         }
     }
 
     processPayment() {
         if(this.cart.length === 0) return this.show3DDialog("Empty", "Cart is empty!", "alert");
-        
         const table = document.getElementById('tableSelector').value;
-        if(table === "0") return this.show3DDialog("Table Required", "Please Select a Table Number", "alert");
-
+        if(table === "0") return this.show3DDialog("Table Required", "Select a Table", "alert");
         const total = document.getElementById('finalTotal').innerText;
         
         this.show3DDialog("Confirm Payment", `Process ${total} for Table ${table}?`, "confirm", () => {
-            this.show3DDialog("Success", `Order sent to Kitchen for Table ${table}.`, "alert");
+            this.show3DDialog("Success", `Sent to Kitchen (Table ${table}).`, "alert");
             this.cart = []; this.renderCart();
             document.getElementById('tableSelector').value = "0";
             document.getElementById('cartPanel').classList.remove('expanded');
