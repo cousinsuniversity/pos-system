@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEXUS POS // 3D</title>
+    <title>NEXUS POS // STANDARD</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -34,14 +34,6 @@
         }
 
         /* --- Animations --- */
-        @keyframes elastic-click {
-            0% { transform: scale(1); }
-            30% { transform: scale(0.9); }
-            50% { transform: scale(0.95); }
-            80% { transform: scale(1.02); }
-            100% { transform: scale(1); }
-        }
-
         @keyframes sheen {
             0% { left: -100%; opacity: 0; }
             50% { opacity: 0.5; }
@@ -52,6 +44,12 @@
             0% { transform: scale(0.8) translateY(20px) rotateX(10deg); opacity: 0; }
             50% { transform: scale(1.05) translateY(-5px) rotateX(0deg); opacity: 1; }
             100% { transform: scale(1) translateY(0); }
+        }
+
+        @keyframes float3D {
+            0% { transform: translateY(0) rotateX(0); }
+            50% { transform: translateY(-10px) rotateX(5deg); }
+            100% { transform: translateY(0) rotateX(0); }
         }
 
         /* --- Layout --- */
@@ -84,7 +82,7 @@
         
         .tab-btn.active {
             color: var(--accent-color);
-            box-shadow: var(--shadow-in); /* Pressed look */
+            box-shadow: var(--shadow-in);
             border: 1px solid rgba(0,242,234,0.1);
         }
 
@@ -112,7 +110,6 @@
             transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* Inner Glow Highlight */
         .product-card::before {
             content: ''; position: absolute; top:0; left:0; right:0; bottom:0;
             border-radius: 20px;
@@ -120,11 +117,7 @@
             pointer-events: none;
         }
 
-        /* Active/Click State - The "Real 3D" Press */
-        .product-card:active {
-            box-shadow: var(--shadow-in);
-            transform: scale(0.95);
-        }
+        .product-card:active { box-shadow: var(--shadow-in); transform: scale(0.95); }
 
         .product-name { font-weight: 700; font-size: 1.15rem; margin-bottom: 5px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
         .product-stock { font-size: 0.8rem; color: var(--text-muted); margin-top: auto; }
@@ -160,7 +153,7 @@
             border-radius: 12px;
             margin-bottom: 20px;
             font-weight: bold;
-            box-shadow: var(--shadow-in); /* Inset for input fields */
+            box-shadow: var(--shadow-in);
             outline: none;
         }
 
@@ -171,7 +164,7 @@
             border-radius: 15px;
             padding: 15px;
             display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 5px 5px 10px #121215, -5px -5px 10px #25252d; /* Soft floating */
+            box-shadow: 5px 5px 10px #121215, -5px -5px 10px #25252d;
         }
 
         .qty-btn {
@@ -185,10 +178,7 @@
             font-size: 0.9rem;
         }
         
-        .qty-btn:active {
-            box-shadow: inset 3px 3px 6px #0f0f13, inset -3px -3px 6px #383842;
-            color: var(--accent-color);
-        }
+        .qty-btn:active { box-shadow: inset 3px 3px 6px #0f0f13, inset -3px -3px 6px #383842; color: var(--accent-color); }
 
         .totals-area {
             margin-top: 25px;
@@ -216,7 +206,6 @@
             transition: transform 0.1s;
         }
         
-        /* Shine Effect */
         .pay-btn::after {
             content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
             background: linear-gradient(to right, transparent, rgba(255,255,255,0.6), transparent);
@@ -224,20 +213,15 @@
             animation: sheen 3s infinite;
         }
 
-        .pay-btn:active {
-            transform: scale(0.96) translateY(2px);
-            box-shadow: 0 2px 10px rgba(0, 242, 234, 0.1);
-        }
+        .pay-btn:active { transform: scale(0.96) translateY(2px); box-shadow: 0 2px 10px rgba(0, 242, 234, 0.1); }
 
         /* --- Admin Modal --- */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 200; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
         .modal.active { display: flex; }
 
         .modal-content {
-            background: #1e1e24;
-            width: 90%; max-width: 500px; padding: 30px; border-radius: 25px;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.05);
+            background: #1e1e24; width: 90%; max-width: 500px; padding: 30px; border-radius: 25px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.05);
         }
 
         .form-group { margin-bottom: 20px; }
@@ -255,15 +239,11 @@
         #customDialogOverlay {
             display: none; position: fixed; top:0; left:0; width:100%; height:100%;
             background: rgba(0,0,0,0.7); z-index: 99999;
-            justify-content: center; align-items: center;
-            backdrop-filter: blur(4px);
+            justify-content: center; align-items: center; backdrop-filter: blur(4px);
         }
         
         #customDialogBox {
-            background: #1e1e24;
-            padding: 30px; border-radius: 25px;
-            width: 90%; max-width: 400px;
-            text-align: center;
+            background: #1e1e24; padding: 30px; border-radius: 25px; width: 90%; max-width: 400px; text-align: center;
             box-shadow: 0 30px 60px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1);
             border: 1px solid rgba(0, 242, 234, 0.1);
             animation: dialogPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -272,23 +252,33 @@
 
         #dialogTitle { color: var(--accent-color); font-size: 1.5rem; margin-bottom: 10px; text-shadow: 0 0 10px rgba(0,242,234,0.3); }
         #dialogMessage { color: var(--text-muted); margin-bottom: 25px; font-size: 1.1rem; }
-        
         .dialog-btns { display: flex; gap: 15px; justify-content: center; }
         
-        /* --- Splash Screen --- */
+        /* --- Wizard Splash Screen --- */
         #splashScreen {
             position: fixed; top:0; left:0; width:100%; height:100%;
-            background: var(--bg-dark);
-            z-index: 9999;
+            background: var(--bg-dark); z-index: 9999;
             display: flex; justify-content: center; align-items: center; flex-direction: column;
             transition: opacity 0.5s;
         }
         
-        #setupForm {
+        /* The Wizard Container */
+        #setupWizard {
             background: #1e1e24; padding: 40px; border-radius: 30px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.6);
             width: 90%; max-width: 400px; text-align: center;
             border: 1px solid rgba(255,255,255,0.05);
+            perspective: 1000px;
+        }
+
+        .wizard-step { display: none; animation: dialogPop 0.5s ease; }
+        .wizard-step.active { display: block; }
+
+        .logo-3d {
+            font-size: 3rem; font-weight: 900; color: white;
+            text-shadow: 0 10px 20px rgba(0,0,0,0.5), 0 0 20px var(--accent-color);
+            margin-bottom: 20px; display: inline-block;
+            animation: float3D 4s ease-in-out infinite;
         }
 
         .loader {
@@ -299,7 +289,6 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Mobile */
         @media (max-width: 768px) {
             .app-container { flex-direction: column; }
             .cart-section { 
@@ -323,8 +312,7 @@
     <div id="customDialogBox">
         <h2 id="dialogTitle">Alert</h2>
         <p id="dialogMessage">Message goes here</p>
-        <div class="dialog-btns" id="dialogBtns">
-            </div>
+        <div class="dialog-btns" id="dialogBtns"></div>
     </div>
 </div>
 
@@ -332,12 +320,43 @@
     <div class="loader" id="splashLoader"></div>
     <div id="splashText" style="font-weight:900; letter-spacing:2px; color:var(--text-muted)">LOADING SYSTEM...</div>
     
-    <div id="setupForm" style="display:none;">
-        <h2 style="color:white; margin-bottom:10px; text-shadow:0 2px 4px rgba(0,0,0,0.5)">Welcome!</h2>
-        <p style="color:var(--text-muted); margin-bottom:30px;">Let's setup your 3D POS.</p>
-        <div class="form-group"><input type="text" id="setupStoreName" placeholder="Store Name"></div>
-        <div class="form-group"><input type="number" id="setupTableCount" placeholder="Number of Tables"></div>
-        <button class="pay-btn" onclick="window.app.finishSetup()">LAUNCH POS</button>
+    <div id="setupWizard" style="display:none;">
+        
+        <div class="wizard-step active" id="step1">
+            <div class="logo-3d">NEXUS<span style="color:var(--accent-color)">POS</span></div>
+            <h2 style="color:white; margin:10px 0;">Welcome</h2>
+            <p style="color:var(--text-muted); margin-bottom:30px;">Initialize your Standard System.</p>
+            <button class="pay-btn" onclick="window.app.nextStep(2)">GET STARTED</button>
+        </div>
+
+        <div class="wizard-step" id="step2">
+            <h3 style="color:var(--accent-color); margin-bottom:20px;">Localization</h3>
+            <div class="form-group">
+                <select id="setupLang">
+                    <option value="en">English (US)</option>
+                    <option value="es">Español</option>
+                    <option value="fr">Français</option>
+                    <option value="ph">Filipino</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <select id="setupRegion">
+                    <option value="USD">United States (USD)</option>
+                    <option value="PHP">Philippines (PHP)</option>
+                    <option value="EUR">Europe (EUR)</option>
+                    <option value="JPY">Japan (JPY)</option>
+                </select>
+            </div>
+            <button class="pay-btn" onclick="window.app.nextStep(3)">NEXT</button>
+        </div>
+
+        <div class="wizard-step" id="step3">
+            <h3 style="color:var(--accent-color); margin-bottom:20px;">Store Config</h3>
+            <div class="form-group"><input type="text" id="setupStoreName" placeholder="Store Name"></div>
+            <div class="form-group"><input type="number" id="setupTableCount" placeholder="Number of Tables"></div>
+            <button class="pay-btn" onclick="window.app.finishSetup()">LAUNCH POS</button>
+        </div>
+
     </div>
 </div>
 
@@ -364,15 +383,15 @@
     <div class="cart-section" id="cartPanel">
         <div class="cart-header" onclick="window.app.toggleMobileCart()">
             <h3 style="margin:0;">Order</h3>
-            <span id="mobileTotal" style="color:var(--accent-color); font-weight:900;">$0.00</span>
+            <span id="mobileTotal" style="color:var(--accent-color); font-weight:900;">0.00</span>
             <i class="fas fa-chevron-up mobile-only" style="display:none"></i>
         </div>
         <select id="tableSelector" class="table-selector"><option value="0">Select Table...</option></select>
         <div class="cart-items" id="cartItems"></div>
         <div class="totals-area">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px; color:var(--text-muted);"><span>Subtotal</span><span id="subTotal">$0.00</span></div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px; color:var(--text-muted);"><span>Tax (5%)</span><span id="taxAmount">$0.00</span></div>
-            <div style="display:flex; justify-content:space-between; margin-top:15px; font-size:1.5rem; font-weight:900; color:white;"><span>Total</span><span id="finalTotal">$0.00</span></div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px; color:var(--text-muted);"><span>Subtotal</span><span id="subTotal">0.00</span></div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px; color:var(--text-muted);"><span>Tax (5%)</span><span id="taxAmount">0.00</span></div>
+            <div style="display:flex; justify-content:space-between; margin-top:15px; font-size:1.5rem; font-weight:900; color:white;"><span>Total</span><span id="finalTotal">0.00</span></div>
             <button class="pay-btn" onclick="window.app.processPayment()">PROCESS PAYMENT</button>
         </div>
     </div>
