@@ -5,7 +5,6 @@ class POS {
         this.taxRate = 0.05;
         this.isTouch = false;
         
-        // Extended Settings for Localization
         this.settings = { 
             storeName: "NEXUS POS", 
             tableCount: 10, 
@@ -16,24 +15,46 @@ class POS {
 
         try {
             const savedData = localStorage.getItem('nexus_products');
-            this.products = savedData ? JSON.parse(savedData) : this.getDefaultProducts();
+            if (savedData) {
+                this.products = JSON.parse(savedData);
+            } else {
+                this.fetchProductsFromAPI(); // Main source of data
+            }
+            
             const savedSettings = localStorage.getItem('nexus_settings');
             if(savedSettings) this.settings = JSON.parse(savedSettings);
         } catch (e) {
-            this.products = this.getDefaultProducts();
+            this.fetchProductsFromAPI();
         }
         
         this.init();
     }
 
+    // --- JSON API FETCH ---
+    async fetchProductsFromAPI() {
+        try {
+            const response = await fetch('https://dummyjson.com/products?limit=15');
+            const data = await response.json();
+            
+            this.products = data.products.map(item => ({
+                id: item.id,
+                name: item.title,
+                price: item.price,
+                category: item.category.includes('groceries') ? 'Food' : 'Drinks' 
+            }));
+            
+            this.saveData();
+            this.renderProducts();
+        } catch (error) {
+            console.error("API Error", error);
+            this.products = []; // No defaults, empty state
+            this.renderProducts();
+        }
+    }
+
+    // REMOVED HARDCODED DEFAULTS
     getDefaultProducts() {
-        return [
-            { id: 1, name: "Neon Burger", price: 12.50, category: "Food" },
-            { id: 2, name: "Cyber Fries", price: 5.00, category: "Food" },
-            { id: 3, name: "Quantum Cola", price: 3.50, category: "Drinks" },
-            { id: 4, name: "Void Coffee", price: 4.00, category: "Drinks" },
-            { id: 5, name: "Plasma Cake", price: 6.00, category: "Dessert" },
-        ];
+        return []; 
     }
 
     getCurrencySymbol() {
@@ -52,6 +73,47 @@ class POS {
 
     detectDevice() {
         this.isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    }
+
+    // --- RECEIPT PRINTER ---
+    printReceipt(tableNumber, totalAmount) {
+        const sym = this.getCurrencySymbol();
+        const date = new Date().toLocaleString();
+        
+        let itemsHtml = '';
+        this.cart.forEach(item => {
+            itemsHtml += `
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                    <span>${item.qty}x ${item.name}</span>
+                    <span>${sym}${(item.price * item.qty).toFixed(2)}</span>
+                </div>
+            `;
+        });
+
+        const receiptWindow = window.open('', '', 'width=300,height=600');
+        receiptWindow.document.write(`
+            <html>
+            <body style="font-family: monospace; padding: 20px;">
+                <h2 style="text-align: center; margin:0;">${this.settings.storeName}</h2>
+                <p style="text-align: center; margin:0 0 10px 0;">Official Receipt</p>
+                <hr style="border:1px dashed #000;">
+                <p>Date: ${date}<br>Table: ${tableNumber}</p>
+                <hr style="border:1px dashed #000;">
+                ${itemsHtml}
+                <hr style="border:1px dashed #000;">
+                <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:1.2rem;">
+                    <span>TOTAL</span>
+                    <span>${totalAmount}</span>
+                </div>
+                <hr style="border:1px dashed #000;">
+                <p style="text-align:center;">Thank you!</p>
+            </body>
+            </html>
+        `);
+        receiptWindow.document.close();
+        receiptWindow.focus();
+        receiptWindow.print();
+        receiptWindow.close();
     }
 
     // --- WIZARD LOGIC ---
@@ -100,8 +162,7 @@ class POS {
         }
     }
 
-    // --- 3D Dialog System ---
-    show3DDialog(title, message, type, onConfirm) {
+    show3DDialog(title, message, type, onConfirm, onPrint) {
         const overlay = document.getElementById('customDialogOverlay');
         const box = document.getElementById('customDialogBox');
         const titleEl = document.getElementById('dialogTitle');
@@ -127,6 +188,20 @@ class POS {
             btnOk.onclick = () => { closeDialog(); if(onConfirm) onConfirm(); };
             
             btnsEl.appendChild(btnCancel);
+            btnsEl.appendChild(btnOk);
+        } else if (type === 'success') {
+            const btnPrint = document.createElement('button');
+            btnPrint.className = 'btn-secondary';
+            btnPrint.innerHTML = '<i class="fas fa-print"></i> Print';
+            btnPrint.onclick = () => { if(onPrint) onPrint(); };
+
+            const btnOk = document.createElement('button');
+            btnOk.className = 'pay-btn';
+            btnOk.innerText = 'New Order';
+            btnOk.style.margin = '0';
+            btnOk.onclick = closeDialog;
+
+            btnsEl.appendChild(btnPrint);
             btnsEl.appendChild(btnOk);
         } else {
             const btnOk = document.createElement('button');
@@ -289,7 +364,11 @@ class POS {
         const total = document.getElementById('finalTotal').innerText;
         
         this.show3DDialog("Confirm Payment", `Process ${total} for Table ${table}?`, "confirm", () => {
-            this.show3DDialog("Success", `Sent to Kitchen (Table ${table}).`, "alert");
+            // Success showing PRINT Button
+            this.show3DDialog("Success", `Order sent to Kitchen.`, "success", null, () => {
+                this.printReceipt(table, total);
+            });
+            
             this.cart = []; this.renderCart();
             document.getElementById('tableSelector').value = "0";
             document.getElementById('cartPanel').classList.remove('expanded');
